@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Document</title>
+</head>
+<body>
+    <section id="todo_list">
+        <div class="container">
+            <h1 class="header">ToDo List</h1>
+            <div class="add_todo_section">
+                <div class="add_todo">
+                    <input type="text" class="add_todo_field" id="add_todo_field" placeholder="Add new todo title">
+                    <input type="textarea" class="add_todo_description" id="add_todo_description" placeholder="Add new todo description">
+                </div>
+                <button class="buttons addbutton" id="add_button">Add</button>
+            </div>
+            <div class="filter_todo_section">
+                <input type="search" class="search_todo" id="search_todo" placeholder="Search">
+                <button class="buttons all_button" id="all_button">All</button>
+                <button class="buttons comleted_button" id="completed_button">Completed</button>
+                <button class="buttons uncompleted_button" id="uncompleted_button">Uncompleted</button>
+            </div>
+            <div class="todo_list_section">
+                <ul id="todo_items">
+                
+                </ul>
+            </div>
+        </div>
+        
+
+    </section>
+    <script src="script.js"></script>
+</body>
+</html>
