@@ -6,6 +6,7 @@ const all_button = document.getElementById("all_button");
 const completed_button = document.getElementById("completed_button");
 const uncompleted_button = document.getElementById("uncompleted_button");
 const todo_items = document.getElementById("todo_items");
+const modal_container = document.getElementById("modal_container");
 
 const todolist = JSON.parse(localStorage.getItem("list")) || [];
 
@@ -29,8 +30,41 @@ class Todo_Item {
 
 }
 
-const renderModal = () => {
-    
+const renderModal = (item) => {
+    modal_container.innerHTML += `
+    <div class="modal" style="display: block" tabindex="-1">
+    <div class="modal_dialog">
+        <div class="modal_content">
+            <div class="modal_header">
+                <input type="text" class="add_todo_field" id="modal_title">
+            </div>
+            <div class="modal_body">
+                <input type="text" class="add_todo_description" id="modal_description">
+            </div>
+            <div class="modal_footer">
+                <button type="button" class="btn" id="modal_edit_button">Edit</button>
+                <button type="button" class="btn" id="modal_close_button">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+    `;
+    const modal_title = document.getElementById("modal_title");
+    const modal_description = document.getElementById("modal_description");
+    modal_title.value = item.title;
+    modal_description.value = item.description;
+    const modal_edit_button = document.getElementById("modal_edit_button");
+    const modal_close_button = document.getElementById("modal_close_button");
+
+    modal_edit_button.addEventListener("click", () => {
+        item.update({"title": modal_title.value, "description": modal_description.value});
+        modal_container.innerHTML = null
+        renderList(todolist)
+    });
+
+    modal_close_button.onclick = () => {
+        modal_container.innerHTML = null
+    }
 }
  
 const renderList = (list) => {
@@ -74,7 +108,13 @@ const renderList = (list) => {
     const edit_buttons = document.querySelectorAll(".editbutton");
 
     edit_buttons.forEach((button,index) => {
-
+        if(list[index].completed) {
+            button.style.display = "none"
+        }
+        button.onclick = () => {
+            renderModal(list[index]);
+            localStorage.setItem("list",JSON.stringify(list));
+        }
     });
 
     const delete_buttons = document.querySelectorAll(".deletebutton");
