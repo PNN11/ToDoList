@@ -8,7 +8,7 @@ const uncompleted_button = document.getElementById("uncompleted_button");
 const todo_items = document.getElementById("todo_items");
 const modal_container = document.getElementById("modal_container");
 
-const todolist = JSON.parse(localStorage.getItem("list")) || [];
+
 
 const set_id = () => {
     let id = Number(localStorage.getItem("todo_number")) || 0;
@@ -18,11 +18,11 @@ const set_id = () => {
 }
 
 class Todo_Item {
-    completed = false;
-    constructor(id, title, description) {
+    constructor(id, title, description, completed) {
         this.id = id,
         this.title = title,
-        this.description = description
+        this.description = description,
+        this.completed = completed || false
     }
     update(newtask) {
         Object.assign(this,newtask) 
@@ -30,7 +30,11 @@ class Todo_Item {
 
 }
 
-const renderModal = (item) => {
+const todolist = JSON.parse(localStorage.getItem("list")).map((item) => {
+    return new Todo_Item(item.id, item.title, item.description, item.completed)
+}) || [];
+
+const renderModal = (item,list) => {
     modal_container.innerHTML += `
     <div class="modal" style="display: block" tabindex="-1">
     <div class="modal_dialog">
@@ -58,8 +62,9 @@ const renderModal = (item) => {
 
     modal_edit_button.addEventListener("click", () => {
         item.update({"title": modal_title.value, "description": modal_description.value});
-        modal_container.innerHTML = null
-        renderList(todolist)
+        localStorage.setItem("list",JSON.stringify(list));
+        modal_container.innerHTML = null;
+        renderList(list)
     });
 
     modal_close_button.onclick = () => {
@@ -98,7 +103,7 @@ const renderList = (list) => {
         button.onclick = (e) => {
             e.target.className = "done_todo";
             e.target.textContent = "Done";
-            list[index].completed = true;
+            list[index].update({"completed": true});
             localStorage.setItem("list",JSON.stringify(list));
             renderList(list)
 
@@ -112,8 +117,7 @@ const renderList = (list) => {
             button.style.display = "none"
         }
         button.onclick = () => {
-            renderModal(list[index]);
-            localStorage.setItem("list",JSON.stringify(list));
+            renderModal(list[index], list);
         }
     });
 
@@ -121,7 +125,7 @@ const renderList = (list) => {
 
     delete_buttons.forEach((button, index) => {
         button.onclick = () => {
-            list.splice(list[index],1);
+            list.splice(index, 1);
             localStorage.setItem("list", JSON.stringify(list));
             renderList(list)
         }
@@ -140,3 +144,23 @@ const add_new_todo = () => {
 add_button.addEventListener("click", add_new_todo);
 
 renderList(todolist);
+
+all_button.addEventListener("click", () => {
+    renderList(todolist);
+})
+
+completed_button.addEventListener("click", () => {
+    let compl = todolist.filter((item) => item.completed === true);
+    renderList(compl)
+})
+
+uncompleted_button.addEventListener("click", () => {
+    let uncompl = todolist.filter((item) => item.completed === false);
+    renderList(uncompl)
+})
+
+search_todo.addEventListener("input", (e) => {
+    let search_value = e.target.value;
+    let arr = todolist.filter((item) => item.title.toUpperCase().includes(search_value.toUpperCase()));
+    renderList(arr);
+})
