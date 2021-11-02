@@ -30,9 +30,11 @@ class Todo_Item {
 
 }
 
-const todolist = JSON.parse(localStorage.getItem("list")).map((item) => {
+const local_list = JSON.parse(localStorage.getItem("list")) || [];
+
+const todolist = local_list.map((item) => {
     return new Todo_Item(item.id, item.title, item.description, item.completed)
-}) || [];
+});
 
 const renderModal = (item,list) => {
     modal_container.innerHTML += `
