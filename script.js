@@ -1,12 +1,12 @@
-const add_todo_field = document.getElementById("add_todo_field");
-const add_todo_description = document.getElementById("add_todo_description")
-const add_button = document.getElementById("add_button");
-const search_todo = document.getElementById("search_todo");
-const all_button = document.getElementById("all_button");
-const completed_button = document.getElementById("completed_button");
-const uncompleted_button = document.getElementById("uncompleted_button");
-const todo_items = document.getElementById("todo_items");
-const modal_container = document.getElementById("modal_container");
+// const add_todo_field = document.getElementById("add_todo_field");
+// const add_todo_description = document.getElementById("add_todo_description")
+// const add_button = document.getElementById("add_button");
+// const search_todo = document.getElementById("search_todo");
+// const all_button = document.getElementById("all_button");
+// const completed_button = document.getElementById("completed_button");
+// const uncompleted_button = document.getElementById("uncompleted_button");
+// const todo_items = document.getElementById("todo_items");
+// const modal_container = document.getElementById("modal_container");
 
 
 
@@ -17,24 +17,139 @@ const set_id = () => {
     return id
 }
 
-class Todo_Item {
-    constructor(id, title, description, completed) {
-        this.id = id,
-        this.title = title,
-        this.description = description,
-        this.completed = completed || false
+const todoModel = {
+    list: [],
+    getTodo(id) {
+      const task = this.list.find((task) => task.id === id);
+      return task;
+    },
+    createTodo(someNewTitle, someNewDescription) {
+      const newTask = {
+        id: set_id(),
+        title: someNewTitle,
+        description: someNewDescription || "",
+        completed: false,
+      };
+      this.list.push(newTask);
+      this.addListToLocalStorage();
+    },
+    updateTodo(Id, newTask) {
+        const newIndex = this.list.findIndex((task) => task.id === Id);
+        Object.assign(this.list[newIndex], newTask);
+        this.addListToLocalStorage();
+    },
+    deleteTodo(id) {
+        this.list = this.list.filter((task) => task.id !== id);
+        this.addListToLocalStorage();
+    },
+    addListToLocalStorage() {
+      localStorage.setItem("list", JSON.stringify(this.list));
     }
-    update(newtask) {
-        Object.assign(this,newtask) 
-    }
+  };
+  todoModel.list = JSON.parse(localStorage.getItem("list")) || [];
 
+const todoView = {
+    todo_items: document.getElementById("todo_items"),
+
+    initEvents(create_click) {
+        const add_todo_field = document.getElementById("add_todo_field");
+        const add_todo_description = document.getElementById("add_todo_description");
+        const add_button = document.getElementById("add_button");
+    
+        add_button.onclick = () => {
+          create_click(add_todo_field.value, add_todo_description.value);
+          add_todo_field.value = null;
+          add_todo_description.value = null;
+        };
+      },
+
+    renderList(todolist, done_click, delete_click) {
+        this.todo_items.innerHTML = null;
+        
+        if(!todolist.length) {
+            this.todo_items.innerHTML = "<h4>Nothing to do</h4>"
+        }
+
+        todolist.forEach((todoitem) => {
+            this.todo_items.innerHTML += `
+            <li class="todo_item">
+                <div class="todo_item_info">
+                    <h5 class="todotitle">${todoitem.title}</h5>
+                    <p class="todo_description">${todoitem.description}</p>
+                </div>
+                <div class="todo_item_buttons">
+                    <button class="donebutton" id="done_button_${todoitem.id}"></button>
+                    <button class="editbutton" id="edit_button_${todoitem.id}"></button>
+                    <button class="deletebutton" id="delete_button_${todoitem.id}"></button>
+                </div>
+            </li>
+            `;
+            const done_button = document.getElementById(`done_button_${todoitem.id}`);
+            const edit_button = document.getElementById(`edit_button_${todoitem.id}`);
+            const delete_button = document.getElementById(`delete_button_${todoitem.id}`);
+            if(!todoitem.completed) {
+                done_button.addEventListener("click", () => {
+                    done_click(todoitem)
+                } )
+            }
+            else {
+                done_button.className = "done_todo";
+                done_button.textContent = "Done",
+                edit_button.style.display = "none"
+            }
+            delete_button.addEventListener("click", () => {
+                delete_click(todoitem.id)
+            })
+
+        });
+    }
+};
+
+const todoController = {
+    todoModel: todoModel,
+    todoView: todoView,
+
+    done_click(prev_task) {
+        let updTask = {...prev_task, completed: true};
+        this.todoModel.updateTodo(updTask.id, updTask);
+        this.render()
+    },
+
+    delete_click(id) {
+        this.todoModel.deleteTodo(id);
+        this.render()
+    },
+
+    create_click(title, description) {
+        this.todoModel.createTodo(title, description),
+        this.render()
+    },
+
+    render() {
+        const done_todo = (prev_task) => {
+            this.done_click(prev_task)
+        };
+
+        const delete_todo = (id) => {
+            this.delete_click(id)
+        };
+
+        this.todoView.renderList(this.todoModel.list, done_todo, delete_todo)
+    },
+
+    init() {
+        const createTodo = (title, description) => {
+          this.create_click(title, description);
+        };
+    
+    
+        this.render();
+        this.todoView.initEvents(createTodo);
+    
+      },
 }
 
-const local_list = JSON.parse(localStorage.getItem("list")) || [];
-
-const todolist = local_list.map((item) => {
-    return new Todo_Item(item.id, item.title, item.description, item.completed)
-});
+todoController.init()
 
 const renderModal = (item,list) => {
     modal_container.innerHTML += `
@@ -73,96 +188,3 @@ const renderModal = (item,list) => {
         modal_container.innerHTML = null
     }
 }
- 
-const renderList = (list) => {
-    todo_items.innerHTML = null;
-    if(!list.length) {
-        todo_items.innerHTML = "<h4>Nothing to do</h4>"
-    }
-    list.forEach(item => {
-        todo_items.innerHTML += `
-        <li class="todo_item">
-            <div class="todo_item_info">
-                <h5 class="todotitle">${item.title}</h5>
-                <p class="todo_description">${item.description}</p>
-            </div>
-            <div class="todo_item_buttons">
-                <button class="donebutton" id="done_button"></button>
-                <button class="editbutton" id="edit_button"></button>
-                <button class="deletebutton" id="delete_button"></button>
-            </div>
-    </li>
-        `
-    });
-    
-    const done_buttons = document.querySelectorAll(".donebutton");
-
-    done_buttons.forEach((button,index) => {
-        if(list[index].completed === true) {
-            button.className = "done_todo";
-            button.textContent = "Done"
-        }
-        button.onclick = (e) => {
-            e.target.className = "done_todo";
-            e.target.textContent = "Done";
-            list[index].update({"completed": true});
-            localStorage.setItem("list",JSON.stringify(list));
-            renderList(list)
-
-        }
-    });
-
-    const edit_buttons = document.querySelectorAll(".editbutton");
-
-    edit_buttons.forEach((button,index) => {
-        if(list[index].completed) {
-            button.style.display = "none"
-        }
-        button.onclick = () => {
-            renderModal(list[index], list);
-        }
-    });
-
-    const delete_buttons = document.querySelectorAll(".deletebutton");
-
-    delete_buttons.forEach((button, index) => {
-        button.onclick = () => {
-            list.splice(index, 1);
-            localStorage.setItem("list", JSON.stringify(list));
-            renderList(list)
-        }
-    })
-}
-
-const add_new_todo = () => {
-    const new_todo = new Todo_Item(set_id(), add_todo_field.value, add_todo_description.value);
-    todolist.push(new_todo);
-    localStorage.setItem("list", JSON.stringify(todolist));
-    renderList(todolist);
-    add_todo_field.value = null;
-    add_todo_description.value = null
-}
-
-add_button.addEventListener("click", add_new_todo);
-
-renderList(todolist);
-
-all_button.addEventListener("click", () => {
-    renderList(todolist);
-})
-
-completed_button.addEventListener("click", () => {
-    let compl = todolist.filter((item) => item.completed === true);
-    renderList(compl)
-})
-
-uncompleted_button.addEventListener("click", () => {
-    let uncompl = todolist.filter((item) => item.completed === false);
-    renderList(uncompl)
-})
-
-search_todo.addEventListener("input", (e) => {
-    let search_value = e.target.value;
-    let arr = todolist.filter((item) => item.title.toUpperCase().includes(search_value.toUpperCase()));
-    renderList(arr);
-})
