@@ -1,15 +1,3 @@
-// const add_todo_field = document.getElementById("add_todo_field");
-// const add_todo_description = document.getElementById("add_todo_description")
-// const add_button = document.getElementById("add_button");
-// const search_todo = document.getElementById("search_todo");
-// const all_button = document.getElementById("all_button");
-// const completed_button = document.getElementById("completed_button");
-// const uncompleted_button = document.getElementById("uncompleted_button");
-// const todo_items = document.getElementById("todo_items");
-// const modal_container = document.getElementById("modal_container");
-
-
-
 const set_id = () => {
     let id = Number(localStorage.getItem("todo_number")) || 0;
     let next_id = id + 1;
