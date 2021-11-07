@@ -51,7 +51,7 @@ const todoModel = {
 const todoView = {
     todo_items: document.getElementById("todo_items"),
 
-    initEvents(create_click, sort_completed_click, sort_uncompleted_click, sort_todo_title, sort_all_click) {
+    initEvents(events) {
         const add_todo_field = document.getElementById("add_todo_field");
         const add_todo_description = document.getElementById("add_todo_description");
         const add_button = document.getElementById("add_button");
@@ -61,20 +61,40 @@ const todoView = {
         const uncompleted_button = document.getElementById("uncompleted_button");
     
         add_button.onclick = () => {
-          create_click(add_todo_field.value, add_todo_description.value);
-          add_todo_field.value = null;
-          add_todo_description.value = null;
+            if(!add_todo_field.value) {
+                alert("Title is required")
+            }
+            else {
+                events.create_todo(add_todo_field.value, add_todo_description.value);
+                add_todo_field.value = null;
+                add_todo_description.value = null;
+            }
         };
 
         search_todo.addEventListener("input", (e) => {
-            sort_todo_title(e.target.value)
+            events.sort_todo_by_title(e.target.value)
         });
 
-        all_button.addEventListener("click", sort_all_click);
+        all_button.addEventListener("click", () => {
+            events.sort_all();
+            all_button.classList.add("button_active");
+            completed_button.classList.remove("button_active");
+            uncompleted_button.classList.remove("button_active");
+        });
 
-        completed_button.addEventListener("click", sort_completed_click);
+        completed_button.addEventListener("click", () => {
+            events.sort_completed();
+            completed_button.classList.add("button_active");
+            all_button.classList.remove("button_active");
+            uncompleted_button.classList.remove("button_active");
+        });
 
-        uncompleted_button.addEventListener("click", sort_uncompleted_click);
+        uncompleted_button.addEventListener("click", () => {
+            events.sort_uncompleted();
+            uncompleted_button.classList.add("button_active");
+            all_button.classList.remove("button_active");
+            completed_button.classList.remove("button_active");
+        });
       },
 
     renderList(todolist, done_click, delete_click, edit_click) {
@@ -234,29 +254,37 @@ const todoController = {
     },
 
     init() {
-        const createTodo = (title, description) => {
+        const create_todo = (title, description) => {
           this.create_click(title, description);
         };
 
-        const sortAll = () => {
+        const sort_all = () => {
             this.sort_all_click()
         };
 
-        const sortCompleted = () => {
+        const sort_completed = () => {
             this.sort_completed_click()
         };
 
-        const sortUncompleted = () => {
+        const sort_uncompleted = () => {
             this.sort_uncompleted_click()
         };
 
-        const sortTodoTitle = (searchValue) => {
+        const sort_todo_by_title = (searchValue) => {
             this.sort_todo_title(searchValue)
         };
+
+        const events = {
+            create_todo: create_todo,
+            sort_all: sort_all,
+            sort_completed: sort_completed,
+            sort_uncompleted: sort_uncompleted,
+            sort_todo_by_title: sort_todo_by_title
+        }
     
     
         this.render();
-        this.todoView.initEvents(createTodo, sortCompleted, sortUncompleted, sortTodoTitle, sortAll);
+        this.todoView.initEvents(events);
     
       },
 }

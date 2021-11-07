@@ -43,7 +43,7 @@
     cursor: pointer;
     width: 20%;
 }
-.buttons:hover {
+.buttons:hover, .button_active {
     background-color:lightblue;
 }
 .addbutton {
