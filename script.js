@@ -51,19 +51,33 @@ const todoModel = {
 const todoView = {
     todo_items: document.getElementById("todo_items"),
 
-    initEvents(create_click) {
+    initEvents(create_click, sort_completed_click, sort_uncompleted_click, sort_todo_title, sort_all_click) {
         const add_todo_field = document.getElementById("add_todo_field");
         const add_todo_description = document.getElementById("add_todo_description");
         const add_button = document.getElementById("add_button");
+        const search_todo = document.getElementById("search_todo");
+        const all_button = document.getElementById("all_button");
+        const completed_button = document.getElementById("completed_button");
+        const uncompleted_button = document.getElementById("uncompleted_button");
     
         add_button.onclick = () => {
           create_click(add_todo_field.value, add_todo_description.value);
           add_todo_field.value = null;
           add_todo_description.value = null;
         };
+
+        search_todo.addEventListener("input", (e) => {
+            sort_todo_title(e.target.value)
+        });
+
+        all_button.addEventListener("click", sort_all_click);
+
+        completed_button.addEventListener("click", sort_completed_click);
+
+        uncompleted_button.addEventListener("click", sort_uncompleted_click);
       },
 
-    renderList(todolist, done_click, delete_click) {
+    renderList(todolist, done_click, delete_click, edit_click) {
         this.todo_items.innerHTML = null;
         
         if(!todolist.length) {
@@ -84,24 +98,76 @@ const todoView = {
                 </div>
             </li>
             `;
-            const done_button = document.getElementById(`done_button_${todoitem.id}`);
-            const edit_button = document.getElementById(`edit_button_${todoitem.id}`);
-            const delete_button = document.getElementById(`delete_button_${todoitem.id}`);
-            if(!todoitem.completed) {
-                done_button.addEventListener("click", () => {
-                    done_click(todoitem)
-                } )
+        });
+
+        const done_buttons = document.querySelectorAll(".donebutton");
+        done_buttons.forEach((button, index) => {
+            if(!todolist[index].completed) {
+                button.addEventListener("click", () => {
+                    done_click(todolist[index])
+                })
             }
             else {
-                done_button.className = "done_todo";
-                done_button.textContent = "Done",
-                edit_button.style.display = "none"
+                button.className = "done_todo";
+                button.textContent = "Done"
             }
-            delete_button.addEventListener("click", () => {
-                delete_click(todoitem.id)
-            })
-
         });
+
+        const edit_buttons = document.querySelectorAll(".editbutton");
+        edit_buttons.forEach((button, index) => {
+            if(!todolist[index].completed) {
+                button.addEventListener("click", () => {
+                    this.renderModal(todolist[index], edit_click)
+                })
+            }
+            else {
+                button.style.display = "none"
+            }
+        })
+
+        const delete_buttons = document.querySelectorAll(".deletebutton");
+        delete_buttons.forEach((button, index) => {
+            button.addEventListener("click", () => {
+                delete_click(todolist[index].id)
+            })
+        })
+    },
+
+    renderModal(item, edit_click) {
+        modal_container.innerHTML += `
+        <div class="modal" style="display: block" tabindex="-1">
+        <div class="modal_dialog">
+            <div class="modal_content">
+                <div class="modal_header">
+                    <input type="text" class="add_todo_field" id="modal_title">
+                </div>
+                <div class="modal_body">
+                    <input type="text" class="add_todo_description" id="modal_description">
+                </div>
+                <div class="modal_footer">
+                    <button type="button" class="btn" id="modal_edit_button">Edit</button>
+                    <button type="button" class="btn" id="modal_close_button">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+        `;
+        const modal_title = document.getElementById("modal_title");
+        const modal_description = document.getElementById("modal_description");
+        modal_title.value = item.title;
+        modal_description.value = item.description;
+        const modal_edit_button = document.getElementById("modal_edit_button");
+        const modal_close_button = document.getElementById("modal_close_button");
+    
+        modal_edit_button.addEventListener("click", () => {
+            let newTask = {title: modal_title.value, description: modal_description.value};
+            edit_click(item, newTask);
+            modal_container.innerHTML = null
+        });
+    
+        modal_close_button.onclick = () => {
+            modal_container.innerHTML = null
+        }
     }
 };
 
@@ -120,12 +186,38 @@ const todoController = {
         this.render()
     },
 
+    edit_click(task, new_task) {
+        this.todoModel.updateTodo(task.id, new_task);
+        this.render()
+    },
+
     create_click(title, description) {
         this.todoModel.createTodo(title, description),
         this.render()
     },
 
-    render() {
+    sort_completed_click() {
+        let completed = this.todoModel.list.filter((item) => item.completed === true);
+        this.render(completed)
+        
+    },
+
+    sort_uncompleted_click() {
+        let uncompleted = this.todoModel.list.filter((item) => item.completed === false);
+        this.render(uncompleted)
+        
+    },
+
+    sort_all_click() {
+        this.render()
+    },
+
+    sort_todo_title(searchValue) {
+        let searchList = this.todoModel.list.filter((item) => item.title.toUpperCase().includes(searchValue.toUpperCase()));
+        this.render(searchList)
+    },
+
+    render(list = this.todoModel.list) {
         const done_todo = (prev_task) => {
             this.done_click(prev_task)
         };
@@ -134,57 +226,39 @@ const todoController = {
             this.delete_click(id)
         };
 
-        this.todoView.renderList(this.todoModel.list, done_todo, delete_todo)
+        const edit_todo = (task, new_task) => {
+            this.edit_click(task, new_task)
+        }
+
+        this.todoView.renderList(list, done_todo, delete_todo, edit_todo)
     },
 
     init() {
         const createTodo = (title, description) => {
           this.create_click(title, description);
         };
+
+        const sortAll = () => {
+            this.sort_all_click()
+        };
+
+        const sortCompleted = () => {
+            this.sort_completed_click()
+        };
+
+        const sortUncompleted = () => {
+            this.sort_uncompleted_click()
+        };
+
+        const sortTodoTitle = (searchValue) => {
+            this.sort_todo_title(searchValue)
+        };
     
     
         this.render();
-        this.todoView.initEvents(createTodo);
+        this.todoView.initEvents(createTodo, sortCompleted, sortUncompleted, sortTodoTitle, sortAll);
     
       },
 }
 
 todoController.init()
-
-const renderModal = (item,list) => {
-    modal_container.innerHTML += `
-    <div class="modal" style="display: block" tabindex="-1">
-    <div class="modal_dialog">
-        <div class="modal_content">
-            <div class="modal_header">
-                <input type="text" class="add_todo_field" id="modal_title">
-            </div>
-            <div class="modal_body">
-                <input type="text" class="add_todo_description" id="modal_description">
-            </div>
-            <div class="modal_footer">
-                <button type="button" class="btn" id="modal_edit_button">Edit</button>
-                <button type="button" class="btn" id="modal_close_button">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-    `;
-    const modal_title = document.getElementById("modal_title");
-    const modal_description = document.getElementById("modal_description");
-    modal_title.value = item.title;
-    modal_description.value = item.description;
-    const modal_edit_button = document.getElementById("modal_edit_button");
-    const modal_close_button = document.getElementById("modal_close_button");
-
-    modal_edit_button.addEventListener("click", () => {
-        item.update({"title": modal_title.value, "description": modal_description.value});
-        localStorage.setItem("list",JSON.stringify(list));
-        modal_container.innerHTML = null;
-        renderList(list)
-    });
-
-    modal_close_button.onclick = () => {
-        modal_container.innerHTML = null
-    }
-}
