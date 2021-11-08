@@ -173,9 +173,14 @@ const todoView = {
         const modal_close_button = document.getElementById("modal_close_button");
     
         modal_edit_button.addEventListener("click", () => {
-            let newTask = {title: modal_title.value, description: modal_description.value};
-            edit_click(item, newTask);
-            modal_container.innerHTML = null
+            if(!modal_title.value) {
+                alert("Title is required")
+            }
+            else {
+                let newTask = {title: modal_title.value, description: modal_description.value};
+                edit_click(item, newTask);
+                modal_container.innerHTML = null
+            }
         });
     
         modal_close_button.onclick = () => {
