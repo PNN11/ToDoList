@@ -100,9 +100,9 @@ const todoView = {
                     <p class="todo_description">${todoitem.description}</p>
                 </div>
                 <div class="todo_item_buttons">
-                    <button class="donebutton" id="done_button_${todoitem.id}"></button>
-                    <button class="editbutton" id="edit_button_${todoitem.id}"></button>
-                    <button class="deletebutton" id="delete_button_${todoitem.id}"></button>
+                    <button class="donebutton tab" id="done_button_${todoitem.id}"></button>
+                    <button class="editbutton tab" id="edit_button_${todoitem.id}"></button>
+                    <button class="deletebutton tab" id="delete_button_${todoitem.id}"></button>
                 </div>
             </li>
             `;
@@ -117,6 +117,7 @@ const todoView = {
             }
             else {
                 button.className = "done_todo";
+                button.tabIndex = -1;
                 button.textContent = "Done"
             }
         });
@@ -160,6 +161,10 @@ const todoView = {
         </div>
     </div>
         `;
+        const tab = document.querySelectorAll(".tab");
+        tab.forEach((item) => {
+            item.tabIndex = -1
+        });
         const modal_title = document.getElementById("modal_title");
         const modal_description = document.getElementById("modal_description");
         modal_title.value = item.title;
@@ -174,7 +179,10 @@ const todoView = {
         });
     
         modal_close_button.onclick = () => {
-            modal_container.innerHTML = null
+            modal_container.innerHTML = null;
+            tab.forEach((item) => {
+                item.tabIndex = 0
+            })
         }
     }
 };
