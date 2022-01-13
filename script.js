@@ -1,15 +1,3 @@
-const add_todo_field = document.getElementById("add_todo_field");
-const add_todo_description = document.getElementById("add_todo_description")
-const add_button = document.getElementById("add_button");
-const search_todo = document.getElementById("search_todo");
-const all_button = document.getElementById("all_button");
-const completed_button = document.getElementById("completed_button");
-const uncompleted_button = document.getElementById("uncompleted_button");
-const todo_items = document.getElementById("todo_items");
-const modal_container = document.getElementById("modal_container");
-
-
-
 const set_id = () => {
     let id = Number(localStorage.getItem("todo_number")) || 0;
     let next_id = id + 1;
@@ -17,152 +5,289 @@ const set_id = () => {
     return id
 }
 
-class Todo_Item {
-    constructor(id, title, description, completed) {
-        this.id = id,
-        this.title = title,
-        this.description = description,
-        this.completed = completed || false
+const todoModel = {
+    list: [],
+    getTodo(id) {
+      const task = this.list.find((task) => task.id === id);
+      return task;
+    },
+    createTodo(someNewTitle, someNewDescription) {
+      const newTask = {
+        id: set_id(),
+        title: someNewTitle,
+        description: someNewDescription || "",
+        completed: false,
+      };
+      this.list.push(newTask);
+      this.addListToLocalStorage();
+    },
+    updateTodo(Id, newTask) {
+        const newIndex = this.list.findIndex((task) => task.id === Id);
+        Object.assign(this.list[newIndex], newTask);
+        this.addListToLocalStorage();
+    },
+    deleteTodo(id) {
+        this.list = this.list.filter((task) => task.id !== id);
+        this.addListToLocalStorage();
+    },
+    addListToLocalStorage() {
+      localStorage.setItem("list", JSON.stringify(this.list));
     }
-    update(newtask) {
-        Object.assign(this,newtask) 
-    }
+  };
+  todoModel.list = JSON.parse(localStorage.getItem("list")) || [];
 
-}
+const todoView = {
+    todo_items: document.getElementById("todo_items"),
 
-const local_list = JSON.parse(localStorage.getItem("list")) || [];
+    initEvents(events) {
+        const add_todo_field = document.getElementById("add_todo_field");
+        const add_todo_description = document.getElementById("add_todo_description");
+        const add_button = document.getElementById("add_button");
+        const search_todo = document.getElementById("search_todo");
+        const all_button = document.getElementById("all_button");
+        const completed_button = document.getElementById("completed_button");
+        const uncompleted_button = document.getElementById("uncompleted_button");
+    
+        add_button.onclick = () => {
+            if(!add_todo_field.value) {
+                alert("Title is required")
+            }
+            else {
+                events.create_todo(add_todo_field.value, add_todo_description.value);
+                add_todo_field.value = null;
+                add_todo_description.value = null;
+            }
+        };
 
-const todolist = local_list.map((item) => {
-    return new Todo_Item(item.id, item.title, item.description, item.completed)
-});
+        search_todo.addEventListener("input", (e) => {
+            events.sort_todo_by_title(e.target.value)
+        });
 
-const renderModal = (item,list) => {
-    modal_container.innerHTML += `
-    <div class="modal" style="display: block" tabindex="-1">
-    <div class="modal_dialog">
-        <div class="modal_content">
-            <div class="modal_header">
-                <input type="text" class="add_todo_field" id="modal_title">
-            </div>
-            <div class="modal_body">
-                <input type="text" class="add_todo_description" id="modal_description">
-            </div>
-            <div class="modal_footer">
-                <button type="button" class="btn" id="modal_edit_button">Edit</button>
-                <button type="button" class="btn" id="modal_close_button">Close</button>
+        all_button.addEventListener("click", () => {
+            events.sort_all();
+            all_button.classList.add("button_active");
+            completed_button.classList.remove("button_active");
+            uncompleted_button.classList.remove("button_active");
+        });
+
+        completed_button.addEventListener("click", () => {
+            events.sort_completed();
+            completed_button.classList.add("button_active");
+            all_button.classList.remove("button_active");
+            uncompleted_button.classList.remove("button_active");
+        });
+
+        uncompleted_button.addEventListener("click", () => {
+            events.sort_uncompleted();
+            uncompleted_button.classList.add("button_active");
+            all_button.classList.remove("button_active");
+            completed_button.classList.remove("button_active");
+        });
+      },
+
+    renderList(todolist, done_click, delete_click, edit_click) {
+        this.todo_items.innerHTML = null;
+        
+        if(!todolist.length) {
+            this.todo_items.innerHTML = "<h4>Nothing to do</h4>"
+        }
+
+        todolist.forEach((todoitem) => {
+            this.todo_items.innerHTML += `
+            <li class="todo_item">
+                <div class="todo_item_info">
+                    <h5 class="todotitle">${todoitem.title}</h5>
+                    <p class="todo_description">${todoitem.description}</p>
+                </div>
+                <div class="todo_item_buttons">
+                    <button class="donebutton tab" id="done_button_${todoitem.id}"></button>
+                    <button class="editbutton tab" id="edit_button_${todoitem.id}"></button>
+                    <button class="deletebutton tab" id="delete_button_${todoitem.id}"></button>
+                </div>
+            </li>
+            `;
+        });
+
+        const done_buttons = document.querySelectorAll(".donebutton");
+        done_buttons.forEach((button, index) => {
+            if(!todolist[index].completed) {
+                button.addEventListener("click", () => {
+                    done_click(todolist[index])
+                })
+            }
+            else {
+                button.className = "done_todo";
+                button.tabIndex = -1;
+                button.textContent = "Done"
+            }
+        });
+
+        const edit_buttons = document.querySelectorAll(".editbutton");
+        edit_buttons.forEach((button, index) => {
+            if(!todolist[index].completed) {
+                button.addEventListener("click", () => {
+                    this.renderModal(todolist[index], edit_click)
+                })
+            }
+            else {
+                button.style.display = "none"
+            }
+        })
+
+        const delete_buttons = document.querySelectorAll(".deletebutton");
+        delete_buttons.forEach((button, index) => {
+            button.addEventListener("click", () => {
+                delete_click(todolist[index].id)
+            })
+        })
+    },
+
+    renderModal(item, edit_click) {
+        modal_container.innerHTML += `
+        <div class="modal" style="display: block" tabindex="-1">
+        <div class="modal_dialog">
+            <div class="modal_content">
+                <div class="modal_header">
+                    <input type="text" class="add_todo_field" id="modal_title">
+                </div>
+                <div class="modal_body">
+                    <input type="text" class="add_todo_description" id="modal_description">
+                </div>
+                <div class="modal_footer">
+                    <button type="button" class="btn" id="modal_edit_button">Edit</button>
+                    <button type="button" class="btn" id="modal_close_button">Close</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
-    `;
-    const modal_title = document.getElementById("modal_title");
-    const modal_description = document.getElementById("modal_description");
-    modal_title.value = item.title;
-    modal_description.value = item.description;
-    const modal_edit_button = document.getElementById("modal_edit_button");
-    const modal_close_button = document.getElementById("modal_close_button");
-
-    modal_edit_button.addEventListener("click", () => {
-        item.update({"title": modal_title.value, "description": modal_description.value});
-        localStorage.setItem("list",JSON.stringify(list));
-        modal_container.innerHTML = null;
-        renderList(list)
-    });
-
-    modal_close_button.onclick = () => {
-        modal_container.innerHTML = null
-    }
-}
- 
-const renderList = (list) => {
-    todo_items.innerHTML = null;
-    if(!list.length) {
-        todo_items.innerHTML = "<h4>Nothing to do</h4>"
-    }
-    list.forEach(item => {
-        todo_items.innerHTML += `
-        <li class="todo_item">
-            <div class="todo_item_info">
-                <h5 class="todotitle">${item.title}</h5>
-                <p class="todo_description">${item.description}</p>
-            </div>
-            <div class="todo_item_buttons">
-                <button class="donebutton" id="done_button"></button>
-                <button class="editbutton" id="edit_button"></button>
-                <button class="deletebutton" id="delete_button"></button>
-            </div>
-    </li>
-        `
-    });
+        `;
+        const tab = document.querySelectorAll(".tab");
+        tab.forEach((item) => {
+            item.tabIndex = -1
+        });
+        const modal_title = document.getElementById("modal_title");
+        const modal_description = document.getElementById("modal_description");
+        modal_title.value = item.title;
+        modal_description.value = item.description;
+        const modal_edit_button = document.getElementById("modal_edit_button");
+        const modal_close_button = document.getElementById("modal_close_button");
     
-    const done_buttons = document.querySelectorAll(".donebutton");
-
-    done_buttons.forEach((button,index) => {
-        if(list[index].completed === true) {
-            button.className = "done_todo";
-            button.textContent = "Done"
+        modal_edit_button.addEventListener("click", () => {
+            if(!modal_title.value) {
+                alert("Title is required")
+            }
+            else {
+                let newTask = {title: modal_title.value, description: modal_description.value};
+                edit_click(item, newTask);
+                modal_container.innerHTML = null
+            }
+        });
+    
+        modal_close_button.onclick = () => {
+            modal_container.innerHTML = null;
+            tab.forEach((item) => {
+                item.tabIndex = 0
+            })
         }
-        button.onclick = (e) => {
-            e.target.className = "done_todo";
-            e.target.textContent = "Done";
-            list[index].update({"completed": true});
-            localStorage.setItem("list",JSON.stringify(list));
-            renderList(list)
+    }
+};
 
+const todoController = {
+    todoModel: todoModel,
+    todoView: todoView,
+
+    done_click(prev_task) {
+        let updTask = {...prev_task, completed: true};
+        this.todoModel.updateTodo(updTask.id, updTask);
+        this.render()
+    },
+
+    delete_click(id) {
+        this.todoModel.deleteTodo(id);
+        this.render()
+    },
+
+    edit_click(task, new_task) {
+        this.todoModel.updateTodo(task.id, new_task);
+        this.render()
+    },
+
+    create_click(title, description) {
+        this.todoModel.createTodo(title, description),
+        this.render()
+    },
+
+    sort_completed_click() {
+        let completed = this.todoModel.list.filter((item) => item.completed === true);
+        this.render(completed)
+        
+    },
+
+    sort_uncompleted_click() {
+        let uncompleted = this.todoModel.list.filter((item) => item.completed === false);
+        this.render(uncompleted)
+        
+    },
+
+    sort_all_click() {
+        this.render()
+    },
+
+    sort_todo_title(searchValue) {
+        let searchList = this.todoModel.list.filter((item) => item.title.toUpperCase().includes(searchValue.toUpperCase()));
+        this.render(searchList)
+    },
+
+    render(list = this.todoModel.list) {
+        const done_todo = (prev_task) => {
+            this.done_click(prev_task)
+        };
+
+        const delete_todo = (id) => {
+            this.delete_click(id)
+        };
+
+        const edit_todo = (task, new_task) => {
+            this.edit_click(task, new_task)
         }
-    });
 
-    const edit_buttons = document.querySelectorAll(".editbutton");
+        this.todoView.renderList(list, done_todo, delete_todo, edit_todo)
+    },
 
-    edit_buttons.forEach((button,index) => {
-        if(list[index].completed) {
-            button.style.display = "none"
+    init() {
+        const create_todo = (title, description) => {
+          this.create_click(title, description);
+        };
+
+        const sort_all = () => {
+            this.sort_all_click()
+        };
+
+        const sort_completed = () => {
+            this.sort_completed_click()
+        };
+
+        const sort_uncompleted = () => {
+            this.sort_uncompleted_click()
+        };
+
+        const sort_todo_by_title = (searchValue) => {
+            this.sort_todo_title(searchValue)
+        };
+
+        const events = {
+            create_todo: create_todo,
+            sort_all: sort_all,
+            sort_completed: sort_completed,
+            sort_uncompleted: sort_uncompleted,
+            sort_todo_by_title: sort_todo_by_title
         }
-        button.onclick = () => {
-            renderModal(list[index], list);
-        }
-    });
-
-    const delete_buttons = document.querySelectorAll(".deletebutton");
-
-    delete_buttons.forEach((button, index) => {
-        button.onclick = () => {
-            list.splice(index, 1);
-            localStorage.setItem("list", JSON.stringify(list));
-            renderList(list)
-        }
-    })
+    
+    
+        this.render();
+        this.todoView.initEvents(events);
+    
+      },
 }
 
-const add_new_todo = () => {
-    const new_todo = new Todo_Item(set_id(), add_todo_field.value, add_todo_description.value);
-    todolist.push(new_todo);
-    localStorage.setItem("list", JSON.stringify(todolist));
-    renderList(todolist);
-    add_todo_field.value = null;
-    add_todo_description.value = null
-}
-
-add_button.addEventListener("click", add_new_todo);
-
-renderList(todolist);
-
-all_button.addEventListener("click", () => {
-    renderList(todolist);
-})
-
-completed_button.addEventListener("click", () => {
-    let compl = todolist.filter((item) => item.completed === true);
-    renderList(compl)
-})
-
-uncompleted_button.addEventListener("click", () => {
-    let uncompl = todolist.filter((item) => item.completed === false);
-    renderList(uncompl)
-})
-
-search_todo.addEventListener("input", (e) => {
-    let search_value = e.target.value;
-    let arr = todolist.filter((item) => item.title.toUpperCase().includes(search_value.toUpperCase()));
-    renderList(arr);
-})
+todoController.init()
